@@ -13,6 +13,7 @@ enum List[A]:
   def tail: Option[List[A]] = this match
     case h :: t => Some(t)
     case _ => None
+
   def foreach(consumer: A => Unit): Unit = this match
     case h :: t => consumer(h); t.foreach(consumer)
     case _ =>
@@ -45,13 +46,37 @@ enum List[A]:
     case h :: t => t.foldLeft(h)(op)
 
   // Exercise: implement the following methods
-  def zipWithValue[B](value: B): List[(A, B)] = ???
-  def length(): Int = ???
-  def zipWithIndex: List[(A, Int)] = ???
-  def partition(predicate: A => Boolean): (List[A], List[A]) = ???
-  def span(predicate: A => Boolean): (List[A], List[A]) = ???
-  def takeRight(n: Int): List[A] = ???
-  def collect(predicate: PartialFunction[A, A]): List[A] = ???
+  def zipWithValue[B](value: B): List[(A, B)] = foldRight(Nil())((elem, list) => (elem, value) :: list)
+
+  def length(): Int = foldLeft(0)((l, _) => l + 1)
+
+  def zipWithIndex: List[(A, Int)] = foldRight(Nil[(A, Int)]())((elem, list) => (elem, this.length() - list.length() - 1) :: list)
+
+  def partition(predicate: A => Boolean): (List[A], List[A]) = 
+    foldRight((Nil(), Nil())):
+      case (elem, (l1, l2)) if predicate(elem) => (elem :: l1, l2)
+      case (elem, (l1, l2))                    => (l1, elem :: l2)
+
+  def span(predicate: A => Boolean): (List[A], List[A]) = 
+    val fold = foldRight((Nil[A](), Nil[A](), Nil[A]())):
+      case (elem, (l1, l2, l3)) if predicate(elem) => (elem :: l1, elem :: l2, l3)
+      case (elem, (l1, l2, l3))                    => (Nil(), elem :: l2, elem :: l2)
+    (fold._1, fold._3)
+
+  def takeRight(n: Int): List[A] = foldRight(Nil()):
+    case (elem, list) if list.length() < n => elem :: list
+    case (_, list)                         => list
+
+  def collect(predicate: PartialFunction[A, A]): List[A] = 
+    foldRight(Nil()):
+      case (elem, list) if predicate.isDefinedAt(elem) => predicate(elem) :: list
+      case (_, list)                                   => list
+
+  override def toString(): String = foldLeft("")((str, elem) => str + "," + elem.toString()) match
+    case ""  => "List()"
+    case str => "List(" + str.substring(1) + ")"
+  
+
 // Factories
 object List:
 
